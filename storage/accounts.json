@@ -1,0 +1,20 @@
+{
+	"vlad": {
+		"username": "vlad",
+		"password": "Vlad2004",
+		"sudo": true,
+		"mod": true,
+		"hidden": true
+	},
+	"cazan": {
+		"password": "1234",
+		"mod": true,
+		"hidden": true
+	},
+	"merebio": {
+		"password": "Teoo2011"
+	},
+	"UnicornPufos": {
+		"password": "0904"
+	}
+}

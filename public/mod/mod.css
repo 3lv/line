@@ -1,0 +1,158 @@
+#mod-app {
+	display: flex;
+	margin: 0 0;
+	width: 0;
+	max-width: 600px;
+	overflow: hidden;
+	border: 1px solid #ffffff00;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-between;
+	transition: all 0.5s ease;
+}
+@media (min-width: 1200px) {
+	#mod-app {
+		margin: 0 auto;
+		width: 100%;
+		border: 1px solid #ffffffff;
+	}
+}
+/* mod-header {{{ */
+#mod-header {
+	height: 0px;
+	flex: 0 0 0px;
+	height: 0px;
+	padding: 0 1rem;
+	border-bottom: 1px solid #ffffffff;
+	-web-kit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	align-self: stretch;
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+#mod-header.active {
+	flex: 0 0 50px;
+	border-bottom: 1px solid #ffffffff;
+}
+#mod-header .logo {
+	display: flex;
+	align-items: center;
+}
+#mod-header .logo img {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+#mod-header .logo .logo-text{
+	margin-left: 0.3rem;
+	width: max-content;
+}
+/* }}} */
+/* mod-messagebox {{{*/
+#mod-messagebox {
+	flex: 0 2 0;
+	align-self: stretch;
+	transition: all 0.3s ease;
+	background: #202020;
+	overflow: hidden;
+}
+#mod-messagebox.active {
+	flex: 1 2 auto;
+	overflow: auto;
+}
+#mod-messagebox .message {
+	display: flex;
+	flex-direction: column;
+	padding: 0px 0.2rem;
+	transition: all 0.5s ease;
+}
+#mod-messagebox .message > div {
+	width: 80%;
+}
+#mod-messagebox .message.my-message {
+	align-items: flex-end;
+	text-align: right;
+}
+#mod-messagebox .message.other-message {
+	align-items: flex-start;
+	text-align: left;
+}
+#mod-messagebox .message.announcement {
+	align-items: center;
+	text-align: center;
+	font-style: italic;
+	color: var(--grey);
+	overflow-wrap: break-word;
+}
+#mod-messagebox .message.transparent {
+	opacity: 0;
+	padding: 0;
+	margin: 0;
+	font-size: 0;
+}
+#mod-messagebox .message.my-message .name {
+	font-size: 0.8rem;
+	color: var(--grey);
+}
+#mod-messagebox .message.my-message .text {
+	font-size: 1rem;
+	overflow-wrap: break-word;
+	color: var(--grey);
+	padding-right: 0.2rem;
+}
+#mod-messagebox .message.my-message.sent .name {
+	color: var(--green);
+}
+#mod-messagebox .message.my-message.sent .text {
+	color: #ffffff;
+}
+#mod-messagebox .message.other-message .name {
+	font-size: 0.8rem;
+	color: var(--green);
+}
+#mod-messagebox .message.other-message .text {
+	font-size: 1rem;
+	overflow-wrap: break-word;
+	padding-left: 0.2rem;
+}
+/*}}}*/
+/* mod-typebox {{{*/
+#mod-typebox {
+	flex: 0 0 0px;
+	padding: 0 1rem;
+	align-self: stretch;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.2rem;
+	padding: 4px, 4px;
+	border-top: 1px solid #ffffffff;
+	overflow: hidden;
+	transition: flex 0.3s ease;
+}
+#mod-typebox.active {
+	flex: 0 0 36px;
+}
+#mod-typebox #mod-message-input {
+	flex: 1 0 0;
+}
+#mod-typebox #mod-send-message {
+	margin: 5px 2px;
+	padding: 3px 8px;
+	border: none;
+	border-radius: 4px;
+	color: #ffffff;
+	background: #303030;
+	transition: all 0.2s ease;
+}
+#mod-typebox #mod-send-message:hover {
+	margin: 3px 0px;
+	padding: 5px 10px;
+	color: #000000;
+	background: var(--green);
+}
+/*}}}*/
+/* vim:set fdm=marker */

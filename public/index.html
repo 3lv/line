@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head><!--{{{-->
+<meta charset="utf-8">
+<title>line</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="style.css">
+<!-- icon -->
+<link rel="icon" type="image/x-icon" href="images/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+<link rel="manifest" href="images/site.webmanifest">
+<link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#ad3834">
+<meta name="msapplication-TileColor" content="#00a300">
+<meta name="theme-color" content="#ffffff">
+</head><!--}}}-->
+
+<body>
+<!-- wait for css to load then #loadOverlay:{display:none}; -->
+<div id="loadOverlay" style="background:#000000; position:absolute;
+	top: 0px; left: 0px; width:100%; height: 100%; z-index:1001;">
+</div>
+
+<div id="app">
+	<div id="header">
+		<div class="logo">
+			<img src="images/logo.png" alt="/">
+			<div class="logo-text">line</div>
+		</div>
+		<div id="header-menu">
+			<button id="logout-button">Log out</button>
+		</div>
+	</div>
+	<div id="login-form" class="active">
+		<h2>Join line</h2>
+		<input id="username" type="text" placeholder="Username">
+		<input id="password" type="password" placeholder="Password">
+		<div id="login-failed"></div>
+		<button id="login-button">Log in</button>
+	</div>
+	<div id="messagebox">
+		<!-- test messages
+		<div class="message my-message">
+			<div class="name">You:</div>
+			<div class="text">Ce faci Cazan?</div>
+		</div>
+		<div class="message announcement">
+			Metehau joined the chat.
+		</div>
+		<div class="message other-message">
+			<div class="name">Metehau:</div>
+			<div class="text">Amogus!</div>
+		</div>
+		-->
+	</div>
+	<div id="commandbox">
+		<!-- test messages
+		<!-- temp removed message from here
+		<div class="message error-message">Command not found</div>
+		<div class="message info-message">active users: just you</div>
+		-->
+	</div>
+	<div id="typebox">
+		<input id="message-input">
+		<button id="send-message">Send</button>
+	</div>
+</div>
+
+
+<script type="text/javascript" src="socket.io/socket.io.js"></script>
+<script type="text/javascript" src="code.js"></script>
+<noscript>Your browser doesn't support JavaScript!!</noscript>
+</body>
+
+</html>
+
+<!-- vim:set fdm=marker:  -->
