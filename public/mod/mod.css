@@ -56,7 +56,7 @@
 	flex: 0 2 0;
 	align-self: stretch;
 	transition: all 0.3s ease;
-	background: #202020;
+	background: var(--bg-color);
 	overflow: hidden;
 }
 #mod-messagebox.active {

@@ -33,7 +33,7 @@
 			<button id="logout-button">Log out</button>
 		</div>
 	</div>
-	<div id="login-form" class="active">
+	<div id="login-form">
 		<h2>Join line</h2>
 		<input id="username" type="text" placeholder="Username">
 		<input id="password" type="password" placeholder="Password">
@@ -63,7 +63,8 @@
 		-->
 	</div>
 	<div id="typebox">
-		<input id="message-input">
+		<!-- use oninput="ta_autogrow(this)"-->
+		<textarea id="message-input" rows="1" spellcheck="false"></textarea>
 		<button id="send-message">Send</button>
 	</div>
 </div>

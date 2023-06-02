@@ -39,3 +39,8 @@ socket.on("mod-message", (message, callback) => {
 	console.log("received mod message");
 	renderMessage("#mod-messagebox", "other-message", message);
 });
+document.getElementById("logout-button").addEventListener("click", () => {
+		document.getElementById("mod-messagebox").classList.remove("active");
+		document.getElementById("mod-commandbox").classList.remove("active");
+		document.getElementById("mod-typebox").classList.remove("active");
+});

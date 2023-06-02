@@ -5,17 +5,21 @@ const app = express();
 app.use(express.static(path.join(__dirname+"/public")));
 const server = require("http").createServer(app);
 const io = require("socket.io")(server);
+global.io = io;
 // const uuid = requrie("uuid");
 const crypto = require("crypto");
 const randomID = () => crypto.randomBytes(8).toString("hex");
 const _time = () => (new Date()).toTimeString().split(" ")[0];
 const _date = () => (new Date()).toDateString().split(" ")[0];
 sessionStore = new (require("./lib/sessionStore.js"))();
+global.sessionStore = sessionStore;
+messageStore = new (require("./lib/messageStore.js"))();
+global.messageStore = messageStore;
 const auth = require("./lib/authenticate.js");
 const runCmd = require("./lib/runCommand.js");
+const formatDate = require("./lib/formatDate.js");
 const _inject_mod_string = require("./lib/inject_modapp_string.js");
 /* }}} */
-
 function invalidRequest(socket) {/*{{{*/
 	// WIP
 	// TODO actually use the function
@@ -23,77 +27,79 @@ function invalidRequest(socket) {/*{{{*/
 	sessionStore.deleteSession(socket.session.sessionID);
 	socket.disconnect();
 }/*}}}*/
-
+function deleteSessionVerbose(session) {
+	const session_copy = {...session};
+	sessionStore.deleteSession(session);
+	if(!session_copy.isHidden) {
+		io.emit("user-left-global-room", session_copy.username);
+	}
+}
 
 io.use((socket, next) => {/*{{{*/
 	if(socket.session) {
 		return next();
 	}
+	let session;
+	let session_status = "none";
 	const sessionID = socket.handshake.auth.sessionID;
 	if(sessionID) {
 		// try to recover session searching sessionID
 		session = sessionStore.findSession(sessionID);
-		if(session) {
-			if(session.status == "active") {
-				// maybe sessionID was shared?
-				return next(new Error("session in use"));
-			}
-			// TODO change word "delete" to "expire"
-			// stop session deletion
-			clearTimeout(session.deleteTimeout);
-			delete session.deleteTimeout;
-			// set session active
-			session.status = "active";
-			// restore session in socket
-			socket.session = session;
-			// announce client session it's restored
-			socket.emit("session", "recovered", {
-				sessionID: session.sessionID,
-				username: session.username,
-			});
-			if(socket.session.mod == true) {
-				socket.join("mod-room");
-				socket.emit("debug", _inject_mod_string);
-			}
-			return next();
-		} else {
-			// sessionID is not a valid session
-			// (fake sessionID or expired)
+		if(session === undefined) {
 			return next(new Error("session expired"));
 		}
+		if(session.isActive == true) {
+			// maybe sessionID was shared?
+			return next(new Error("session in use"));
+		}
+		session_status = "recovered";
+		// TODO change word "delete" to "expire"
+		// stop session deletion
+		clearTimeout(session.deleteTimeout);
+		delete session.deleteTimeout;
+		if(session_status == "recovered") {
+			//restore missed messages
+		}
+		// set session active
+		session.isActive = true;
+		session.disconnectTime = 0;
 	} else {
 		// verify auth data and store details about user
 		auth_details = auth(socket.handshake.auth);
 		if(auth_details.status !== "done" && auth_details.status !== undefined) {
+			//console.debug(auth_details.status);
 			return next(new Error(auth_details.status));
 		}
 		///authenticated
-		// create new session and store it
-		let session = { };
-		session.sessionID = randomID();
-		session.status = "active";
-		Object.assign(session, auth_details);
-		sessionStore.saveSession(session.sessionID, session);
-
-		// store session in socket
-		socket.session = session;
-
-		// announce the new session
-		// TODO don't send all session info
-		socket.emit("session", "new_session", {
-			sessionID: session.sessionID,
-			username: session.username,
-		});
-		if(socket.session.mod == true) {
-			socket.join("mod-room");
-			socket.emit("debug", _inject_mod_string);
-		}
-		if(!session.hidden) {
-			socket.broadcast.emit( "system-message", "#messagebox", "announcement",
-				{ text: `${socket.session.username} joined the chat` }
-			);
-		}
-		return next();
+		session = {
+			sessionID: randomID(),
+			...auth_details,
+			isActive: true,
+			specs: socket.handshake.headers["user-agent"],
+			IP: socket.handshake.address,
+			spamscore: { messages:  0}
+		};
+		session_status = "created";
+	}
+	// TODO save specs and IP in gathered_data json format in accounts table
+	// save/update session in sessionStore
+	sessionStore.saveSession(session.sessionID, session);
+	// store/restore session in socket
+	socket.session = session;
+	// link socket in session
+	session.socket = socket;
+	// announce the new session
+	// TODO don't send all session info
+	socket.emit("session", session_status, {
+		sessionID: session.sessionID,
+		username: session.username,
+	});
+	if(socket.session.isMod) {
+		socket.join("mod-room");
+		socket.emit("debug", _inject_mod_string);
+	}
+	if(!session.isHidden && session_status == "created") {
+		socket.broadcast.emit("user-joined-global-room", socket.session.username);
 	}
 	return next();
 });/*}}}*/
@@ -101,28 +107,54 @@ io.use((socket, next) => {/*{{{*/
 /* received events from clients {{{*/
 io.on("connection", (socket) => {
 	socket.on("global-message", (message, callback) => {/*{{{*/
-		if( typeof callback !== "function" ) {
-			// TODO use invalidRequest function
-			return socket.disconnect();
+		if(typeof callback !== "function") {
+			return invalidRequest(socket);
 		}
+		if(message.text.length > 2000) {
+			return invalidRequest(socket);
+		}
+		if(socket.session.spamscore.messages >= 2) {
+			callback({
+				error: "Slow down.."
+			});
+			return;
+			//TODO jumpscare
+		}
+		socket.session.spamscore.messages++;
+		setTimeout((socket)=>{socket.session.spamscore.messages--;}, 5 * 1000, socket);
 		console.log(_time()+" "+socket.handshake.address+" "+socket.session.username+" "+message.text);
-		if( socket.session.hidden == true ) {
+		message.opts = {};
+		if(socket.session.isHidden) {
+			message.opts.isHidden = true;
 			callback({ status: "suppressed" });
 			console.log("message suppressed cuz hidden");
 			return;
 		}
-		socket.broadcast.emit( "global-message",
-			{ 	username: socket.session.username,
+		message.type = "global-message";
+		message.sender = socket.session.username;
+		messageStore.saveMessage(message);
+		// WIP ?considering using event object
+		// easier to store and send at the same time
+		event = {
+			rooms: [],
+			name: "global-message",
+			args: [{
+				username: socket.session.username,
 				text:     message.text,
-				image:    "" }
-		);
+				image:    "" }],
+			date: new Date()
+		};
+		socket.broadcast.emit(event.name, ...event.args);
 		callback({ status: "sent" });
 	});/*}}}*/
 	socket.on("mod-message", (message, callback) => { /* {{{ */
-		console.log("sending mod message");
 		if(typeof callback !== "function") {
-			return socket.disconnect();
+			return invalidRequest(socket);
 		}
+		if(message.text.length > 2000) {
+			return invalidRequest(socket);
+		}
+		console.log(_time()+" [mod-message] "+socket.session.username+" "+message.text);
 		socket.to("mod-room").emit( "mod-message",
 			{	username: socket.session.username,
 				text:	  message.text,
@@ -132,50 +164,41 @@ io.on("connection", (socket) => {
 	}); /* }}} */
 	socket.on("system-command", (cmd, callback) => {/*{{{*/
 		if( typeof callback !== "function" ) {
-			return socket.disconnect();
+			return invalidRequest(socket);
 		}
-		if(socket.session.sudo != true) {
+		if(cmd.length > 2000) {
+			return;
+		}
+		if(socket.session.isSudo != true) {
 			callback({
-				status: "permision-denied"
+				error: "Permision denied"
 			});
 			return;
 		}
 		console.log(":!" + cmd);
-		let s = runCmd(socket, cmd);
-		callback({
-			status: s
-		});
+		runCmd(socket, cmd, callback); // includes the callback
 	});/*}}}*/
 	socket.on("user-exit", (data) => {/*{{{*/
 		socket.disconnect();
 	});/*}}}*/
 	socket.on("disconnecting", (reason) => {/*{{{*/
 		let session = socket.session;
-		if(session == undefined) {
+		if(session === undefined) {
+			// if reloading really fast socket.session might not be set
 			return;
 		}
-		session.status = "nonactive";
-		Object.assign(socket, session);
+		session.isActive = false;
+		session.disconnectTime = new Date();
 		// start a deleteTimeout for the inactive session
-		if(reason == "client namespace disconnect" || reason =="server namespace disconnect") {
-			sessionStore.deleteSession(session);
-				if(!socket.hidden) {
-					socket.broadcast.emit( "system-message", "#messagebox", "announcement",
-						{ text: `${socket.username} left the chat` }
-					);
-				}
+		if(reason == "client namespace disconnect"
+			|| reason =="server namespace disconnect") {
+			deleteSessionVerbose(session);
 		} else {
-			session.deleteTimeout = setTimeout( () => {
-				if(session == undefined) {
-					return;
-				}
-				sessionStore.deleteSession(session);
-				if(!socket.hidden) {
-					socket.broadcast.emit( "system-message", "#messagebox", "announcement",
-						{ text: `${socket.username} left the chat` }
-					);
-				}
-			}, sessionStore.__sessionTimeout);
+			session.deleteTimeout = setTimeout(
+				deleteSessionVerbose,
+				sessionStore.__sessionTimeout,
+				session //function args
+			);
 		}
 	});/*}}}*/
 });/*}}}*/
