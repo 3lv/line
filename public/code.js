@@ -88,10 +88,18 @@ function activeScreen( screen ) {
 	});
 	if(screen == ".chat-screen") {
 		elem = document.getElementById("message-input");
-		setTimeout(()=>elem.focus(), 100);
+		setTimeout((elem) => {
+			const end = elem.value.length;
+			elem.setSelectionRange(end, end);
+			elem.focus();
+		}, 100, elem);
 	} else if(screen == ".login-screen") {
 		elem = document.getElementById("username");
-		setTimeout(()=>elem.focus(), 100);
+		setTimeout((elem) => {
+			const end = elem.value.length;
+			elem.setSelectionRange(end, end);
+			elem.focus();
+		}, 100, elem);
 	}
 }
 /* }}} */
@@ -148,15 +156,9 @@ function renderMessage(box, type, message) {
 		box = box.substring(1);
 	}
 	let display_box = document.getElementById(box);
-	const new_message = document.createElement("div");
-	new_message.setAttribute("style", `color:${message.color};`);
-	new_message.classList.add(type);
-	if(message.status) {
-		new_message.classList.add(message.status);
-	}
-	// TEMPORARY: everything in .messagebox is .message
-	new_message.classList.add("message");
+	let new_message;
 	if(type == "my-message") {
+		new_message = document.createElement("div");
 		let name_elem = document.createElement("div");
 		name_elem.classList.add("name");
 		name_elem.innerText = "You:"
@@ -168,6 +170,7 @@ function renderMessage(box, type, message) {
 		text_elem.appendChild(span);
 		new_message.appendChild(text_elem);
 	} else if(type == "other-message") {
+		new_message = document.createElement("div");
 		let name_elem = document.createElement("div");
 		name_elem.classList.add("name");
 		name_elem.innerText = message.username;
@@ -179,17 +182,26 @@ function renderMessage(box, type, message) {
 		text_elem.appendChild(span);
 		new_message.appendChild(text_elem);
 	} else {
+		new_message = document.createElement("div");
 		new_message.innerText = message.text;
 	}
-	// TODO add "if(needs animation)"
+	new_message.setAttribute("style", `color:${message.color};`);
+	new_message.classList.add(type);
+	if(message.status) {
+		new_message.classList.add(message.status);
+	}
+	// TEMPORARY: everything in .messagebox is .message
+	if(box == "messagebox") {
+		new_message.classList.add("message");
+	}
 	if(!message.lazy) {
 		new_message.classList.add("transparent");
 	}
 	display_box.appendChild(new_message);
-	const text = new_message.querySelector(".text");
 	const span = new_message.querySelector(".text span");
 	if(span) {
-		// shrink the message as much as possible
+		const text = new_message.querySelector(".text");
+		// shrink the message as much as possible without changing line organisation
 		// scrollWidth
 		const shrunkenWidth = (span.offsetWidth + 1) + "px";
 		text.style.width = `min(100%, ${shrunkenWidth})`;
@@ -200,6 +212,12 @@ function renderMessage(box, type, message) {
 	}
 	if(box == "messagebox") {
 		display_box.scrollTop = display_box.scrollHeight;
+		// TODO remove messages while too many messages
+		/*
+		if(display_box.children.length > 5) {
+			unrenderMessage(display_box.firstChild, 0);
+		}
+		*/
 	}
 	if(message.displayTime !== undefined) {
 		unrenderMessage(new_message, message.displayTime);
@@ -209,6 +227,9 @@ function renderMessage(box, type, message) {
 }/*}}}*/
 function unrenderMessage(elem, delay) { /* {{{ */
 	delay ||= 0;
+	if(elem === undefined) {
+		return;
+	}
 	setTimeout( (elem) => {
 		elem.offsetHeight;
 		elem.classList.add("transparent");
@@ -372,8 +393,8 @@ socket.on("connect_error", (err) => {
 	//console.log(err);
 	// TODO add a delay so it doesn't flash on short disconnections (holding F5)
 	activeScreen(".login-screen");
-	username_field.focus();
-	username_field.select();
+	password_field.focus();
+	//password_field.select();
 	// TODO change login-failed with login-message/status
 	const login_box = document.getElementById("login-failed");
 	if(err.message == "incorrect") {

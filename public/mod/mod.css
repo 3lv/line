@@ -1,20 +1,21 @@
 #mod-app {
 	display: flex;
-	margin: 0 0;
-	width: 0;
-	max-width: 600px;
+	max-width: 800px;
 	overflow: hidden;
-	border: 1px solid #ffffff00;
+	border: 1px solid #ffffffff;
 	flex-direction: column;
 	align-items: center;
 	justify-content: space-between;
 	transition: all 0.5s ease;
+	opacity: 0;
+	margin: 0 0;
+	width: 0;
 }
-@media (min-width: 1200px) {
+@media (min-width: 1600px) {
 	#mod-app {
+		opacity: 1;
 		margin: 0 auto;
 		width: 100%;
-		border: 1px solid #ffffffff;
 	}
 }
 /* mod-header {{{ */
