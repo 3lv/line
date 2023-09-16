@@ -68,6 +68,15 @@
 	</div>
 	<div id="typebox">
 		<!-- use oninput="ta_autogrow(this)"-->
+		<!--
+		<input id="file-picker" type="file" webkitdirectory = "true" directory/>
+		-->
+		<form enctype="multipart/form-data">
+		<input id="image-input" type="file" accept="image/*" multiple/>
+		<!--
+		<input id="pdf-input" type="file" accept="pdf" multiple/>
+		-->
+		</form>
 		<textarea id="message-input" rows="1" spellcheck="false"></textarea>
 		<button id="send-message">Send</button>
 	</div>

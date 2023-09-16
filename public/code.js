@@ -133,6 +133,15 @@ function runCommand(cmd) { /*{{{*/
 		}
 	}
 } /*}}}*/
+function _arrayBufferToBase64( buffer ) {
+		var binary = '';
+		var bytes = new Uint8Array( buffer );
+		var len = bytes.byteLength;
+		for (var i = 0; i < len; i++) {
+					binary += String.fromCharCode( bytes[ i ] );
+				}
+		return window.btoa( binary );
+}
 /* 	function renderMessage({box}, {type}, {message}){{{
  * 
  * 	Description:
@@ -156,33 +165,66 @@ function renderMessage(box, type, message) {
 		box = box.substring(1);
 	}
 	let display_box = document.getElementById(box);
-	let new_message;
-	if(type == "my-message") {
-		new_message = document.createElement("div");
-		let name_elem = document.createElement("div");
-		name_elem.classList.add("name");
-		name_elem.innerText = "You:"
-		new_message.appendChild(name_elem);
-		let text_elem = document.createElement("div");
-		text_elem.classList.add("text");
-		let span = document.createElement("span");
-		span.innerText = message.text;
-		text_elem.appendChild(span);
-		new_message.appendChild(text_elem);
-	} else if(type == "other-message") {
-		new_message = document.createElement("div");
-		let name_elem = document.createElement("div");
-		name_elem.classList.add("name");
-		name_elem.innerText = message.username;
-		new_message.appendChild(name_elem);
-		let text_elem = document.createElement("div");
-		text_elem.classList.add("text");
-		let span = document.createElement("span");
-		span.innerText = message.text;
-		text_elem.appendChild(span);
-		new_message.appendChild(text_elem);
+	let new_message = document.createElement("div");
+	if(box == "messagebox") {
+		if(type == "my-message") {
+			let name_elem = document.createElement("div");
+			name_elem.classList.add("name");
+			name_elem.innerText = "You:"
+			new_message.appendChild(name_elem);
+			let text_elem = document.createElement("div");
+			text_elem.classList.add("text");
+			let span = document.createElement("span");
+			span.innerText = message.text;
+			text_elem.appendChild(span);
+			new_message.appendChild(text_elem);
+			if(message.files && message.files.images) {
+				// WIP
+				let img_elem = document.createElement("img");
+				if(message.files.images.link) {
+					img_elem.src = message.image.link;
+				} else if(message.files.images) {
+					img_elem.src = "data:image/gif;base64,"
+					+ _arrayBufferToBase64(message.files.images[0]);
+				}
+				img_elem.loading = "lazy";
+				img_elem.style.width = "100%";
+				img_elem.style.height = "10rem";
+				//img_elem.style["object-fit"] = "contain";
+				img_elem.style["object-fit"] = "cover";
+				new_message.appendChild(img_elem);
+			}
+		} else if(type == "other-message") {
+			let name_elem = document.createElement("div");
+			name_elem.classList.add("name");
+			name_elem.innerText = message.username;
+			new_message.appendChild(name_elem);
+			let text_elem = document.createElement("div");
+			text_elem.classList.add("text");
+			let span = document.createElement("span");
+			span.innerText = message.text;
+			text_elem.appendChild(span);
+			new_message.appendChild(text_elem);
+			if(message.files && message.files.images) {
+				// WIP
+				let img_elem = document.createElement("img");
+				if(message.files.images.link) {
+					img_elem.src = message.image.link;
+				} else if(message.files.images) {
+					img_elem.src = "data:image/gif;base64,"
+					+ _arrayBufferToBase64(message.files.images[0]);
+				}
+				img_elem.loading = "lazy";
+				img_elem.style.width = "100%";
+				img_elem.style.height = "10rem";
+				//img_elem.style["object-fit"] = "contain";
+				img_elem.style["object-fit"] = "cover";
+				new_message.appendChild(img_elem);
+			}
+		} else {
+			new_message.innerText = message.text;
+		}
 	} else {
-		new_message = document.createElement("div");
 		new_message.innerText = message.text;
 	}
 	new_message.setAttribute("style", `color:${message.color};`);
@@ -190,7 +232,7 @@ function renderMessage(box, type, message) {
 	if(message.status) {
 		new_message.classList.add(message.status);
 	}
-	// TEMPORARY: everything in .messagebox is .message
+	// TEMPORARY: everything in #messagebox is .message
 	if(box == "messagebox") {
 		new_message.classList.add("message");
 	}
@@ -283,10 +325,14 @@ document.getElementById("logout-button").addEventListener("click", () => {
 // send-message button
 document.getElementById("send-message").addEventListener("click", () => {
 	let message = { };
+	message.files = { };
 	message.text = document.getElementById("message-input").value;
+	const image_input = document.getElementById("image-input");
+	if(image_input.value !== "") {
+		message.files.images = image_input.files;
+	}
 	__message_hist.push(message.text);
-	document.getElementById("message-input").value = "";
-	if(message.text.length == 0) {
+	if(message.text.length == 0 && image_input.value == "") {
 		return;
 	}
 	if(message.text.length > 2000) {
@@ -294,6 +340,9 @@ document.getElementById("send-message").addEventListener("click", () => {
 			{text: "Message too long", displayTime: 3 * 1000});
 		return;
 	}
+	document.getElementById("message-input").value = "";
+	image_input.value = "";
+	// document.getElementById("image-input").value = "";
 	// if message it's command
 	if(message.text.substring(0, 1) == ":") {
 		runCommand(message.text);
@@ -302,6 +351,7 @@ document.getElementById("send-message").addEventListener("click", () => {
 	// render message in gray then send message. If everything's fine
 	// render message normally or else ?delete it
 	message.status = "pending";
+	console.log(message);
 	let message_container = renderMessage(
 		"#messagebox",
 		"my-message",
@@ -346,13 +396,13 @@ document.getElementById("message-input").addEventListener("keydown", function(ev
 		return;
 	}
 });
-// WIP send any key to message-input
 function isTypeable( key ) {
 	key = key.charCodeAt(0);
 	if(33 <= key && key <= 126)
 		return true;
 	return false;
 }
+// WIP send any key to message-input
 document.querySelector("html").addEventListener("keypress", (event) => {
 	// TODO if event.key = word_character/enter etc.
 	// event.preventDefault();
@@ -360,12 +410,14 @@ document.querySelector("html").addEventListener("keypress", (event) => {
 	const message_input = document.getElementById("message-input");
 	if(document.getElementById("typebox").classList.contains("active")) {
 		if(event.key == "Enter") { // TODO and shift key is not held down
+			/*
 			// if message_input already active
 			if(document.activeElement === message_input) {
 				return;
 			}
 			event.preventDefault();
 			message_input.focus();
+			*/
 			return;
 		} else if(isTypeable(event.key)) {
 			/*
@@ -454,7 +506,6 @@ socket.on("fetch", (messages) => {
 /*}}}*/
 
 /* attempt session restoration {{{*/
-
 const sessionID = localStorage.getItem("sessionID");
 if(sessionID) {
 	socket.auth = {

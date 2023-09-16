@@ -1,9 +1,24 @@
 /* global variables {{{1*/
+const PORT = 64001;
+//const https = require("https");
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const app = express();
 app.use(express.static(path.join(__dirname+"/public")));
-const server = require("http").createServer(app);
+/*
+const https = require("https");
+const httpsServer = https.createServer(
+	{
+		key: fs.readFileSync("cert/key.pem"),
+		cert: fs.readFileSync("cert/cert.pem"),
+		passphrase: "1234",
+	},
+	app
+);
+*/
+const http = require("http");
+const server = http.createServer(app);
 const io = require("socket.io")(server);
 global.io = io;
 // const uuid = requrie("uuid");
@@ -133,18 +148,34 @@ io.on("connection", (socket) => {
 		message.type = "global-message";
 		message.sender = socket.session.username;
 		messageStore.saveMessage(message);
-		// WIP ?considering using event object
-		// easier to store and send at the same time
-		event = {
+		// WIP ?considering using new_event object
+	// easier to store and send at the same time
+
+		let new_event = {
 			rooms: [],
 			name: "global-message",
 			args: [{
 				username: socket.session.username,
 				text:     message.text,
-				image:    "" }],
+				files: { }}],
 			date: new Date()
 		};
-		socket.broadcast.emit(event.name, ...event.args);
+		// WIP TESTING
+		if(message.files) {
+		/*
+		fs.writeFile("./tmp/upload", message.files[0], (err) =>{console.error(err);});
+		*/
+		//console.log(message.files[0]);
+			/* WORKING
+			if(message.files[0])
+			new_event.args[0].image = { file: Buffer(message.files[0]).toString("base64") };
+			// img_elem.scr = `data:image/gif;base64, ${message.image.file}`
+			*/
+			if(message.files.images && message.files.images[0]) {
+				new_event.args[0].files.images = [message.files.images[0]]; // send only one for now
+			}
+		}
+		socket.broadcast.emit(new_event.name, ...new_event.args);
 		callback({ status: "sent" });
 	});/*}}}*/
 	socket.on("mod-message", (message, callback) => { /* {{{ */
@@ -175,7 +206,7 @@ io.on("connection", (socket) => {
 			});
 			return;
 		}
-		console.log(":!" + cmd);
+		console.log(socket.session.username + " :!" + cmd);
 		runCmd(socket, cmd, callback); // includes the callback
 	});/*}}}*/
 	socket.on("user-exit", (data) => {/*{{{*/
@@ -203,7 +234,10 @@ io.on("connection", (socket) => {
 	});/*}}}*/
 });/*}}}*/
 
+// PreProc Identifier
 
-server.listen(5000);
+server.listen(PORT, () => {
+	console.log("Server started on port " + PORT);
+});
 
 // vim:set fdm=marker cms=/*%s*/:
